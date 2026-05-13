@@ -9,7 +9,8 @@ from dotenv import load_dotenv
 from src.db import init_db, save_recipe, get_saved_recipes, get_user_preferences
 from src.api import (
     GOAL_DESCRIPTIONS, build_nutrition_params, search_recipes,
-    calculate_waste_score, render_battle_card, get_nutrient
+    calculate_waste_score, render_battle_card, get_nutrient,
+    make_donut, make_calorie_bar, get_taste_profile, render_taste_bars
 )
 
 # ─────────────────────────────────────────
@@ -521,6 +522,88 @@ else:
                         f'<span class="macro-pill">{fat}g fat</span>',
                         unsafe_allow_html=True,
                     )
+                    score, ing_score, prio_score = calculate_waste_score(recipe, sel, prio)
+
+                    with st.expander("View details"):
+                        st.markdown(
+                            '<div style="font-size:11px;font-weight:700;color:#22577A;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px;">Nutritional breakdown</div>',
+                            unsafe_allow_html=True,
+                        )
+
+                        col_donut, col_bar =st.columns(2)
+
+                        with col_donut:
+                            st.plotly_chart(make_donut(recipe), use_container_width=True, key=f"result_donut_{i}", config={"displayModeBar": False})
+
+                        with col_bar:
+                            st.plotly_chart(make_calorie_bar(recipe), use_container_width=True, key=f"result_bar_{i}", config={"displayModeBar": False})
+
+                        taste = get_taste_profile(recipe.get("id"),api_key)
+                        if taste:
+                            render_taste_bars(taste)
+
+                        n_stars = max(1, min(5, round(score * 4) + 1))
+                        ing_pct = round(ing_score * 100) if ing_score is not None else None
+                        prio_pct = round(prio_score * 100) if prio_score is not None else None
+
+                        card_ing = (
+                             f'<div style="flex:1;background:white;border:1px solid #E7E7E2;border-radius:10px;padding:12px 14px;text-align:center;">'
+                             f'<div style="font-size:26px;font-weight:800;color:#38A3A5;">{ing_pct}%</div>'
+                             f'<div style="font-size:11px;color:#888;margin-top:2px;">Ingredients used</div>'
+                             f'</div>'
+                        ) if ing_pct is not None else ""
+
+                        card_prio = (
+                             f'<div style="flex:1;background:white;border:1px solid #E7E7E2;border-radius:10px;padding:12px 14px;text-align:center;">'
+                             f'<div style="font-size:26px;font-weight:800;color:#57CC99;">{prio_pct}%</div>'
+                             f'<div style="font-size:11px;color:#888;margin-top:2px;">Expiring items used</div>'
+                             f'</div>'
+                        ) if prio_pct is not None else ""
+
+                        st.markdown(
+                            f'<div style="background:#FAFAFA;border:1px solid #E7E7E2;border-radius:12px;padding:14px 16px;margin-top:12px;">'
+                            f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
+                            f'<div style="font-size:11px;font-weight:700;color:#22577A;letter-spacing:0.05em;text-transform:uppercase;">Waste score</div>'
+                            f'<div style="font-size:15px;color:#F59E0B;">{"★" * n_stars}<span style="color:#D1D5DB;">{"☆" * (5 - n_stars)}</span></div>'
+                            f'</div>'
+                            f'<div style="display:flex;gap:10px;">{card_ing}{card_prio}</div>'
+                            f'</div>',
+                            unsafe_allow_html=True,
+                        )
+
+                        used_ings = recipe.get("usedIngredients", [])
+                        missed_ings = recipe.get("missedIngredients", [])
+
+                        if used_ings or missed_ings:
+                            rows = ""
+
+                            for ing in used_ings:
+                                name = ing.get("original", ing.get("name", ""))
+                                rows += (
+                                    f'<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #F3F3F3;">'
+                                    f'<div style="width:8px;height:8px;border-radius:50%;background:#38A3A5;flex-shrink:0;"></div>'
+                                    f'<div style="font-size:13px;color:#333;">{name}</div>'
+                                    f'</div>'
+                                )
+
+                            for ing in missed_ings:
+                                name = ing.get("original", ing.get("name", ""))
+                                rows += (
+                                    f'<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #F3F3F3;">'
+                                    f'<div style="width:8px;height:8px;border-radius:50%;background:#E7E7E2;flex-shrink:0;"></div>'
+                                    f'<div style="font-size:13px;color:#999;">{name}</div>'
+                                    f'</div>'
+                                )
+
+                            st.markdown(
+                                f'<div style="background:#FAFAFA;border:1px solid #E7E7E2;border-radius:12px;padding:14px 16px;margin-top:12px;">'
+                                f'<div style="font-size:11px;font-weight:700;color:#22577A;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px;">Ingredients'
+                                f'<span style="font-weight:400;color:#38A3A5;margin-left:8px;">· {len(used_ings)} on hand</span>'
+                                f'<span style="font-weight:400;color:#aaa;margin-left:8px;">· {len(missed_ings)} to buy</span>'
+                                f'</div>{rows}</div>',
+                                unsafe_allow_html=True,
+                        )
+
                     if st.button("Pick this one", key=f"pick_{i}", use_container_width=True, type="primary"):
                         st.session_state["battle_champion"] = recipe
                         st.session_state["battle_done"]     = True
