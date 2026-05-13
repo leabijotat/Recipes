@@ -6,12 +6,20 @@ import os
 from dotenv import load_dotenv  
 
 # to get functions from other files
-from src.db import init_db, save_recipe, get_saved_recipes, get_user_preferences
+from src.db import init_db, get_user_preferences
 from src.api import (
     GOAL_DESCRIPTIONS, build_nutrition_params, search_recipes,
     calculate_waste_score, render_battle_card, get_nutrient,
     make_donut, make_calorie_bar, get_taste_profile, render_taste_bars
 )
+
+# ML: ALL MACHINE-LEARNING HELPERS (EMBEDDING, RATING UI, PREFERENCE-AWARE RANKING) LIVE IN src/ml.py
+from src.ml import (
+    embed_and_save_recipe, get_saved_with_ratings,
+    render_rating_widget, rank_recipes,
+)
+from src.fridge_scan import render_fridge_scanner
+
 
 # ─────────────────────────────────────────
 #  PAGE CONFIG & CSS
@@ -317,10 +325,10 @@ else:
         if prefs["religion"] != "None":
             st.markdown(f"**Restriction:** {prefs['religion']}")
         st.markdown("---")
-        st.markdown("### My winning recipes")
-        saved = get_saved_recipes(user_id)
+        st.markdown("### Selected recipes")  # ML: STARS BELOW BUILD THE PREFERENCE VECTOR
+        saved = get_saved_with_ratings(user_id)  #RETURNS rec_id + rating
         if saved:
-            for i, (title, image, cal, prot, saved_at, instructions) in enumerate(saved):
+            for i, (rec_id, title, image, cal, prot, saved_at, instructions, rating) in enumerate(saved):  # ML: UNPACK ADDITIONAL rec_id + rating
                 img_tag = f'<img src="{image}" />' if image else '<div style="width:52px;height:52px;background:#EEF5FB;border-radius:10px;"></div>'
                 st.markdown(
                     f'<div class="saved-card">'
@@ -331,6 +339,7 @@ else:
                     f'</div></div>',
                     unsafe_allow_html=True,
                 )
+                render_rating_widget(rec_id, user_id, rating, f"side_{i}") # ML: 1-5 STAR RATING — FEEDS THE PREFERENCE VECTOR
                 if st.button("View recipe", key=f"saved_{i}"):
                     st.session_state["detail_recipe"] = {
                         "title": title, "image": image, "cal": cal,
@@ -403,7 +412,8 @@ else:
             )
             manual_ingredients = st.text_input("Other ingredients", placeholder="e.g. tofu, lentils, broccoli")
             manual_ingredients_list = [i.strip().lower() for i in manual_ingredients.split(",") if i.strip()]
-            selected_ingredients = list(set(selected_ingredients + manual_ingredients_list))
+            scanned = render_fridge_scanner()
+            selected_ingredients = list(set(selected_ingredients + manual_ingredients_list + scanned))
 
         with st.container(border=True):
             st.markdown('<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
@@ -463,13 +473,7 @@ else:
                     prefs, max_time, api_key
                 )
             if recipes:
-                def combined_score(r):
-                    waste    = calculate_waste_score(r, selected_ingredients, priority_ingredients)[0]
-                    servings = r.get("servings", persons)
-                    proximity = max(0, 1 - abs(servings - persons) / max(persons, 1))
-                    return 0.7 * waste + 0.3 * proximity
-
-                recipes.sort(key=combined_score, reverse=True)
+                recipes = rank_recipes(recipes, selected_ingredients, priority_ingredients, persons, user_id)
                 st.session_state["all_recipes"]           = recipes[:10]
                 st.session_state["battle_recipes"]        = recipes[:3]
                 st.session_state["battle_champion"]       = recipes[0]
@@ -627,7 +631,7 @@ else:
             n_stars     = max(1, min(5, round(score * 4) + 1))
 
             if not st.session_state.get("battle_saved"):
-                save_recipe(user_id, champion)
+                embed_and_save_recipe(user_id, champion)
                 st.session_state["battle_saved"] = True
 
             st.markdown(
@@ -654,7 +658,7 @@ else:
                 f'</div>',
                 unsafe_allow_html=True,
             )
-            st.markdown('<div style="text-align:center; color:#888; font-size:13px; margin-bottom:10px;">Saved to your winning recipes!</div>', unsafe_allow_html=True)
+            st.markdown('<div style="text-align:center; color:#888; font-size:13px; margin-bottom:10px;">Saved to your selected recipes!</div>', unsafe_allow_html=True) 
 
             st.markdown("---")
             st.markdown("#### Instructions")
