@@ -16,7 +16,6 @@ def get_nutrient(recipe, name):
             return round(n["amount"])
     return 0
 
-
 # Initialize the database and create required tables
 def init_db():
     conn = get_conn()
@@ -67,6 +66,7 @@ def init_db():
         conn.commit()
     except Exception:
         pass
+    
     conn.close()
 
 
@@ -79,16 +79,18 @@ def save_recipe(user_id, recipe, embedding=None):
         steps_text = "\n".join(
             f"{s['number']}. {s['step']}" for s in instructions[0]["steps"]
         )
-    
-     # Insert recipe data into the saved_recipes table
     else:
         steps_text = ""
+        
+    # Insert recipe data into the saved_recipes table
     c.execute(
         "INSERT INTO saved_recipes (user_id, recipe_id, recipe_title, recipe_image, calories, protein, instructions, embedding) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         (user_id, recipe.get("id"), recipe.get("title"), recipe.get("image"),
          get_nutrient(recipe, "Calories"), get_nutrient(recipe, "Protein"), steps_text, embedding),
     )
     conn.commit()
+    
+    # Close database connection
     conn.close()
 
 
@@ -96,12 +98,15 @@ def save_recipe(user_id, recipe, embedding=None):
 def get_saved_recipes(user_id):
     conn = get_conn()
     c = conn.cursor()
+    
+    # Select saved recipes ordered by newest first
     c.execute(
         "SELECT recipe_title, recipe_image, calories, protein, saved_at, instructions FROM saved_recipes WHERE user_id=? ORDER BY saved_at DESC",
         (user_id,),
     )
     rows = c.fetchall()  # Fetch all matching rows
     conn.close()
+    
     return rows
 
 
@@ -109,10 +114,20 @@ def get_saved_recipes(user_id):
 def get_user_preferences(user_id):
     conn = get_conn()
     c = conn.cursor()
+    
+    # Get allergies, diet and religion for a specific user
     c.execute("SELECT allergies, diet, religion FROM preferences WHERE user_id=?", (user_id,))
+    
+    # Fetch one matching row
     row = c.fetchone()
+    
+    # Close database connection
     conn.close()
+    
+    # Check if user preferences exist
     if row:
+        
+        # Unpack database values
         allergies_str, diet, religion = row
         allergies = [a.strip() for a in allergies_str.split(",") if a.strip()] if allergies_str else [] # Convert comma-separated allergies into a clean list
         return {"allergies": allergies, "diet": diet, "religion": religion} #dictionary
