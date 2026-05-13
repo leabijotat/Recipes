@@ -1,9 +1,12 @@
+# impots necessary libraries for API interactions, data handling, and visualization.
 import streamlit as st
 import requests
 import plotly.graph_objects as go
 
+#imports a function which extracts nutrient values from db.py
 from src.db import get_nutrient
 
+# Dictionary used for different goals of recipe filtering 
 GOAL_PARAMS = {
     "Balanced":     {"maxCalories": 800},
     "Light":        {"maxCalories": 500, "maxFat": 15},
@@ -11,6 +14,7 @@ GOAL_PARAMS = {
     "High Protein": {"minProtein": 30},
 }
 
+# Descriptions of the goals shown to user 
 GOAL_DESCRIPTIONS = {
     "Balanced":     "≤ 800 kcal",
     "Light":        "≤ 500 kcal · ≤ 15g fat",
@@ -18,6 +22,7 @@ GOAL_DESCRIPTIONS = {
     "High Protein": "30g+ protein",
 }
 
+# Dictionary used to match allergies of users with allergy values required by the API 
 ALLERGY_MAP = {
     "peanuts": "peanut",
     "milk":    "dairy",
@@ -27,6 +32,7 @@ ALLERGY_MAP = {
     "seafood": "seafood",
 }
 
+# Dictionary used to match diet preferences of users with diet values required by the API
 DIET_MAP = {
     "Vegetarian": "vegetarian",
     "Vegan":      "vegan",
@@ -34,6 +40,7 @@ DIET_MAP = {
 }
 
 
+# Function used to build the nutrition amounts. Manual inputs of user are used otherwise default values based on goal are used.
 def build_nutrition_params(goal, manual_override, manual_cal, manual_prot, manual_fat, manual_carbs):
     if manual_override:
         params = {}
@@ -45,6 +52,7 @@ def build_nutrition_params(goal, manual_override, manual_cal, manual_prot, manua
     return GOAL_PARAMS[goal]
 
 
+# This funtion sendes request to Spoonacular to find appropirate recipes that are based on the set filters and ingredients. It also handles errors 
 def search_recipes(ingredients, nutrition_params, preferences, max_time, api_key):
     url = "https://api.spoonacular.com/recipes/complexSearch"
 
@@ -86,6 +94,7 @@ def search_recipes(ingredients, nutrition_params, preferences, max_time, api_key
         return []
 
 
+# gets ingredient names and changes them to lowercase for easier matching with user input ingredients
 def get_recipe_ingredient_names(recipe):
     names = []
     for ing in recipe.get("nutrition", {}).get("ingredients", []):
@@ -93,6 +102,7 @@ def get_recipe_ingredient_names(recipe):
     return names
 
 
+# Checks if an ingredient is in the recipe by comparing it to the ingredient names and recipe title
 def ingredient_in_recipe(ingredient, ingredient_names, recipe_title):
     ing_lower = ingredient.lower()
     for name in ingredient_names:
@@ -103,6 +113,8 @@ def ingredient_in_recipe(ingredient, ingredient_names, recipe_title):
     return False
 
 
+# Calculates a waste score for a recipe based on how many of the user's selected ingredients and priority ingredients are used in the recipe. 
+# The score is a weighted average of the ingredient match and priority match.
 def calculate_waste_score(recipe, selected_ingredients, priority_ingredients):
     recipe_title     = recipe.get("title", "")
     ingredient_names = get_recipe_ingredient_names(recipe)
@@ -119,6 +131,9 @@ def calculate_waste_score(recipe, selected_ingredients, priority_ingredients):
     else:
         ingredient_score = None
 
+    # Checks how many expiring items are used
+    # If no priority ingredients are set, the priority score is None and doesn't affect the final score. 
+    # If there are priority ingredients, the score is calculated as a percentage of how many are used in the recipe.
     if has_priority:
         matched_priority = sum(
             1 for ing in priority_ingredients
@@ -128,6 +143,7 @@ def calculate_waste_score(recipe, selected_ingredients, priority_ingredients):
     else:
         priority_score = None
 
+    # Combines the ingridient score and priority score into final waste score. 
     if ingredient_score is not None and priority_score is not None:
         final = 0.6 * ingredient_score + 0.4 * priority_score
     elif ingredient_score is not None:
@@ -140,6 +156,7 @@ def calculate_waste_score(recipe, selected_ingredients, priority_ingredients):
     return final, ingredient_score, priority_score
 
 
+# Functions used to build visual elements within the recipe cards for the charts and graphs.
 def make_donut(recipe):
     protein  = get_nutrient(recipe, "Protein")
     carbs    = get_nutrient(recipe, "Carbohydrates")
@@ -167,6 +184,7 @@ def make_donut(recipe):
     return fig
 
 
+# This function creates a bar chart that shows the amounts of different macronutrients. 
 def make_calorie_bar(recipe):
     protein = get_nutrient(recipe, "Protein")
     carbs   = get_nutrient(recipe, "Carbohydrates")
@@ -192,6 +210,8 @@ def make_calorie_bar(recipe):
     return fig
 
 
+# Gets taste profile of recipe from Spoonacular
+#  It caches the result to avoid multiple API calls for same recipe
 def get_taste_profile(recipe_id, api_key):
     cache_key = f"taste_{recipe_id}"
     if cache_key in st.session_state:
@@ -210,6 +230,7 @@ def get_taste_profile(recipe_id, api_key):
         return None
 
 
+# Renders bars for different attributes of recipes 
 def render_taste_bars(taste):
     attrs = [
         ("Savoriness", taste.get("savoriness", 0), "#22577A"),
@@ -239,6 +260,7 @@ def render_taste_bars(taste):
     )
 
 
+# Creates and displays a full recipe battle card with recipe analytics and visualizations
 def render_battle_card(recipe, key_prefix, selected_ingredients, priority_ingredients, api_key=""):
     protein  = get_nutrient(recipe, "Protein")
     carbs    = get_nutrient(recipe, "Carbohydrates")
@@ -246,6 +268,7 @@ def render_battle_card(recipe, key_prefix, selected_ingredients, priority_ingred
     calories = get_nutrient(recipe, "Calories")
     score, ing_score, prio_score = calculate_waste_score(recipe, selected_ingredients, priority_ingredients)
 
+    # Display the recipe image, title, cooking time, servings, and macro nutrient information
     with st.container(border=True):
         if recipe.get("image"):
             st.image(recipe["image"], use_container_width=True)
@@ -258,6 +281,9 @@ def render_battle_card(recipe, key_prefix, selected_ingredients, priority_ingred
             f'<span class="macro-pill"> {fat}g fat</span>',
             unsafe_allow_html=True,
         )
+        # View details option which expands to show nutritional breakdown, waste score, and ingredient match details. 
+        # Includes a donut chart for macronutrient distribution and a bar chart for calories per macro. 
+        # Also includes the waste score  and ingrerdient list.
         with st.expander("View details"):
             st.markdown('<div style="font-size:11px;font-weight:700;color:#22577A;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px;">Nutritional breakdown</div>', unsafe_allow_html=True)
             col_donut, col_bar = st.columns(2)
@@ -269,16 +295,19 @@ def render_battle_card(recipe, key_prefix, selected_ingredients, priority_ingred
             if taste:
                 render_taste_bars(taste)
 
+            # Shows waste score as star rating and shows ingrediant match for selected and priority ingredients. 
             n_stars  = max(1, min(5, round(score * 4) + 1))
             ing_pct  = round(ing_score  * 100) if ing_score  is not None else None
             prio_pct = round(prio_score * 100) if prio_score is not None else None
 
+            # How many user's available ingredients the recipes uses. If no selected ingredients are set, the ingredient match card is not shown.
             card_ing = (
                 f'<div style="flex:1;background:white;border:1px solid #E7E7E2;border-radius:10px;padding:12px 14px;text-align:center;">'
                 f'<div style="font-size:26px;font-weight:800;color:#38A3A5;">{ing_pct}%</div>'
                 f'<div style="font-size:11px;color:#888;margin-top:2px;">Ingredients used</div>'
                 f'</div>'
             ) if ing_pct is not None else ""
+            # How many of the user's priority ingredients the recipe uses. If no priority ingredients are set, the priority match card is not shown.
             card_prio = (
                 f'<div style="flex:1;background:white;border:1px solid #E7E7E2;border-radius:10px;padding:12px 14px;text-align:center;">'
                 f'<div style="font-size:26px;font-weight:800;color:#57CC99;">{prio_pct}%</div>'
@@ -286,6 +315,8 @@ def render_battle_card(recipe, key_prefix, selected_ingredients, priority_ingred
                 f'</div>'
             ) if prio_pct is not None else ""
 
+            # Shows the waste score as a star rating and includes the ingredient match cards for both selected and priority ingredients. 
+            # If neither are set, only the waste score is shown without the ingredient match cards.
             st.markdown(
                 f'<div style="background:#FAFAFA;border:1px solid #E7E7E2;border-radius:12px;padding:14px 16px;margin-top:12px;">'
                 f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
@@ -296,7 +327,10 @@ def render_battle_card(recipe, key_prefix, selected_ingredients, priority_ingred
                 f'</div>',
                 unsafe_allow_html=True,
             )
-
+            
+            # Shows the list of ingredients used in the recipe. 
+            # Ingredients that the user has are shown in one color, while ingredients that the user doesn't have are shown in another color. 
+            # If no selected or priority ingredients are set, the ingredient match section is not shown.
             used_ings   = recipe.get("usedIngredients", [])
             missed_ings = recipe.get("missedIngredients", [])
             if used_ings or missed_ings:
