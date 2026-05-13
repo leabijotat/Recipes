@@ -2,3 +2,7 @@ streamlit
 requests
 plotly
 python-dotenv
+anthropic
+Pillow
+sentence-transformers
+numpy

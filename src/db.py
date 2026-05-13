@@ -48,10 +48,23 @@ def init_db():
         conn.commit()
     except Exception:
         pass
+    # ML: ADD COLUMNS FOR THE ML LAYER — `embedding` STORES THE SENTENCE
+    # VECTOR (BLOB) USED FOR PREFERENCE LEARNING, `rating` STORES THE
+    # USER'S 1-5 STAR FEEDBACK FROM THE SIDEBAR.
+    try:
+        c.execute("ALTER TABLE saved_recipes ADD COLUMN embedding BLOB")
+        conn.commit()
+    except Exception:
+        pass
+    try:
+        c.execute("ALTER TABLE saved_recipes ADD COLUMN rating INTEGER DEFAULT 0")
+        conn.commit()
+    except Exception:
+        pass
     conn.close()
 
 
-def save_recipe(user_id, recipe):
+def save_recipe(user_id, recipe, embedding=None):  # ML: ADDED OPTIONAL `embedding` KWARG SO ml.embed_and_save_recipe CAN PERSIST THE SENTENCE VECTOR
     conn = get_conn()
     c = conn.cursor()
     instructions = recipe.get("analyzedInstructions", [])
@@ -62,9 +75,9 @@ def save_recipe(user_id, recipe):
     else:
         steps_text = ""
     c.execute(
-        "INSERT INTO saved_recipes (user_id, recipe_id, recipe_title, recipe_image, calories, protein, instructions) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO saved_recipes (user_id, recipe_id, recipe_title, recipe_image, calories, protein, instructions, embedding) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",  # ML: ADDED `embedding` COLUMN
         (user_id, recipe.get("id"), recipe.get("title"), recipe.get("image"),
-         get_nutrient(recipe, "Calories"), get_nutrient(recipe, "Protein"), steps_text),
+         get_nutrient(recipe, "Calories"), get_nutrient(recipe, "Protein"), steps_text, embedding),  # ML: ADDED `embedding` VALUE
     )
     conn.commit()
     conn.close()
