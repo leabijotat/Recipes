@@ -81,6 +81,7 @@ def get_saved_recipes(user_id):
     conn.close()
     return rows
 
+#user_preference
 
 def get_user_preferences(user_id):
     conn = get_conn()
@@ -93,3 +94,5 @@ def get_user_preferences(user_id):
         allergies = [a.strip() for a in allergies_str.split(",") if a.strip()] if allergies_str else []
         return {"allergies": allergies, "diet": diet, "religion": religion}
     return {"allergies": [], "diet": "None", "religion": "None"}
+
+  
