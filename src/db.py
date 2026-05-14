@@ -56,9 +56,11 @@ def init_db():
         conn.commit()
     except Exception:
         pass
-    # ML: ADD COLUMNS FOR THE ML LAYER — `embedding` STORES THE SENTENCE
-    # VECTOR (BLOB) USED FOR PREFERENCE LEARNING, `rating` STORES THE
-    # USER'S 1-5 STAR FEEDBACK FROM THE SIDEBAR.
+    # ML: added columns needed for the ML (embedding (sentence vector) and ratings)
+    # users who already have an app.db file would never get the new columns,
+    # because CREATE TABLE IF NOT EXISTS is a no-op when the table already exists. Thus the seperate code
+    # If embedding was already added before, SQLite raises an error. The except catches that error
+    
     try:
         c.execute("ALTER TABLE saved_recipes ADD COLUMN embedding BLOB")
         conn.commit()
