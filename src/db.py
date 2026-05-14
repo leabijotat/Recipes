@@ -77,7 +77,7 @@ def init_db():
 
 
 # Save a recipe to the database for a specific user
-def save_recipe(user_id, recipe, embedding=None):  # ML: ADDED OPTIONAL `embedding` KWARG SO ml.embed_and_save_recipe CAN PERSIST THE SENTENCE VECTOR
+def save_recipe(user_id, recipe, embedding=None):
     conn = get_conn()
     c = conn.cursor()
     instructions = recipe.get("analyzedInstructions", [])  # Retrieve recipe instructions from API response
@@ -90,9 +90,9 @@ def save_recipe(user_id, recipe, embedding=None):  # ML: ADDED OPTIONAL `embeddi
 
     # Insert recipe data into the saved_recipes table
     c.execute(
-        "INSERT INTO saved_recipes (user_id, recipe_id, recipe_title, recipe_image, calories, protein, instructions, embedding) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",  # ML: ADDED `embedding` COLUMN
+        "INSERT INTO saved_recipes (user_id, recipe_id, recipe_title, recipe_image, calories, protein, instructions, embedding) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         (user_id, recipe.get("id"), recipe.get("title"), recipe.get("image"),
-         get_nutrient(recipe, "Calories"), get_nutrient(recipe, "Protein"), steps_text, embedding),  # ML: ADDED `embedding` VALUE
+         get_nutrient(recipe, "Calories"), get_nutrient(recipe, "Protein"), steps_text, embedding),
     )
     conn.commit()
 
