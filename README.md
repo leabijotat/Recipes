@@ -50,7 +50,6 @@ We used **Claude Code** (powered by **Claude Sonnet 4.6**, `claude-sonnet-4-6`) 
 
 - **Integration** — merging independently developed modules from different group members into a single coherent codebase
 - **Debugging** — identifying and fixing compatibility issues that arose during integration (e.g. session state conflicts, API key loading)
-- **ML feature** — supporting the implementation of the sentence-embedding ranking system (`src/ml.py`), including the preference vector logic and rating persistence
 
 Reference: [HSG Guidelines for Generative AI](https://universitaetstgallen.sharepoint.com/sites/PruefungenDE/SitePages/Arbeiten-mit-KI.aspx)
 
