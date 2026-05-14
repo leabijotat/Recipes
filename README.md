@@ -48,7 +48,7 @@ In accordance with HSG guidelines on generative AI, we disclose the following us
 
 We used **Claude Code** (powered by **Claude Sonnet 4.6**, `claude-sonnet-4-6`) as a coding assistant during development. Specifically:
 
-- **Integration** — merging independently developed modules from different group members into a single coherent codebase
+- **Integration** — assistance in merging independently developed modules from different group members into a single coherent codebase
 - **Debugging** — identifying and fixing compatibility issues that arose during integration (e.g. session state conflicts, API key loading)
 
 Reference: [HSG Guidelines for Generative AI](https://universitaetstgallen.sharepoint.com/sites/PruefungenDE/SitePages/Arbeiten-mit-KI.aspx)
