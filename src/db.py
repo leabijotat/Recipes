@@ -56,9 +56,11 @@ def init_db():
         conn.commit()
     except Exception:
         pass
-    # ML: ADD COLUMNS FOR THE ML LAYER — `embedding` STORES THE SENTENCE
-    # VECTOR (BLOB) USED FOR PREFERENCE LEARNING, `rating` STORES THE
-    # USER'S 1-5 STAR FEEDBACK FROM THE SIDEBAR.
+    # ML: added columns needed for the ML (embedding (sentence vector) and ratings)
+    # users who already have an app.db file would never get the new columns,
+    # because CREATE TABLE IF NOT EXISTS is a no-op when the table already exists. Thus the seperate code
+    # If embedding was already added before, SQLite raises an error. The except catches that error
+    
     try:
         c.execute("ALTER TABLE saved_recipes ADD COLUMN embedding BLOB")
         conn.commit()
@@ -75,7 +77,7 @@ def init_db():
 
 
 # Save a recipe to the database for a specific user
-def save_recipe(user_id, recipe, embedding=None):  # ML: ADDED OPTIONAL `embedding` KWARG SO ml.embed_and_save_recipe CAN PERSIST THE SENTENCE VECTOR
+def save_recipe(user_id, recipe, embedding=None):
     conn = get_conn()
     c = conn.cursor()
     instructions = recipe.get("analyzedInstructions", [])  # Retrieve recipe instructions from API response
@@ -88,9 +90,9 @@ def save_recipe(user_id, recipe, embedding=None):  # ML: ADDED OPTIONAL `embeddi
 
     # Insert recipe data into the saved_recipes table
     c.execute(
-        "INSERT INTO saved_recipes (user_id, recipe_id, recipe_title, recipe_image, calories, protein, instructions, embedding) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",  # ML: ADDED `embedding` COLUMN
+        "INSERT INTO saved_recipes (user_id, recipe_id, recipe_title, recipe_image, calories, protein, instructions, embedding) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         (user_id, recipe.get("id"), recipe.get("title"), recipe.get("image"),
-         get_nutrient(recipe, "Calories"), get_nutrient(recipe, "Protein"), steps_text, embedding),  # ML: ADDED `embedding` VALUE
+         get_nutrient(recipe, "Calories"), get_nutrient(recipe, "Protein"), steps_text, embedding),
     )
     conn.commit()
 

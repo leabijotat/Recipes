@@ -4,6 +4,9 @@ import base64 # converts binary image data into a text string so it can be sent 
 import io # allows us to handle image bytes in memory like a file, without saving to disk
 import json # parses Claude's response: Claude returns ingredients as JSON string, then json.loads() converts it into a Python dictionary
 import os # reads environment variables used to load the API key from the .env file
+import streamlit as st
+
+os.environ["ANTHROPIC_API_KEY"] = st.secrets["ANTHROPIC_API_KEY"]
 
 from anthropic import Anthropic
 from PIL import Image

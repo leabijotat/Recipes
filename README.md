@@ -15,22 +15,8 @@ People often don't know what to cook with the ingredients they already have at h
 - **Waste Score** — recipes are ranked by how many of your ingredients they use, with extra weight for expiring items
 - **Battle Mode** — compare recipes head-to-head with nutritional breakdowns and taste profiles
 - **User Accounts** — login/signup with allergy, diet, and religious preferences stored in a database
-- **Saved Recipes** — winning recipes are saved to your profile with full instructions
-
----
-
-## Project Structure
-
-```
-├── app.py              # Main Streamlit app — all pages and UI logic
-├── src/
-│   ├── api.py          # Spoonacular API calls, waste scoring, Plotly charts
-│   ├── db.py           # SQLite database setup and queries
-│   ├── fridge_scan.py  # Streamlit UI for the fridge scanner
-│   └── vision.py       # Claude Vision API — image encoding and ingredient extraction
-├── env/.env            # API keys (not included in submission)
-└── requirements.txt    # Python dependencies
-```
+- **ML Ranking** — recipes are re-ranked using sentence embeddings and star ratings to surface results that match your personal taste over time
+- **Saved Recipes** — selected recipes are saved to your profile with full instructions and a 1–5 star rating widget
 
 ---
 
@@ -49,34 +35,21 @@ ANTHROPIC_API_KEY=your_key
 
 ---
 
-## AI Tools Used
+## Use of AI Declaration
 
-This project was developed with the assistance of **Claude (Anthropic)** as a coding tool. In line with HSG guidelines, all AI-generated contributions have been reviewed and understood by the responsible team member.
+In accordance with HSG guidelines on generative AI, we disclose the following use of AI tools in this project. All AI-generated output was reviewed and validated by the responsible team member before integration.
 
-| Area | Tool | Usage |
-|------|------|-------|
-| Fridge Scanner (`vision.py`, `fridge_scan.py`) | Claude | Implementation of Claude Vision API for ingredient recognition from photos |
-| UI & Styling (`app.py`) | Claude | CSS styling, Streamlit layout and session state patterns |
-| Recipe API & Scoring (`api.py`) | Claude | Spoonacular integration, waste score algorithm, Plotly charts |
-| Database (`db.py`) | Claude | SQLite schema design and query functions |
-| Debugging | Claude | Fixing bugs across all files (e.g. API key loading, rerun conflicts) |
+### AI within the application
+
+- **Fridge Scanner** — Claude Haiku 4.5 (`claude-haiku-4-5`) via Anthropic API  
+  Analyses uploaded fridge photos and extracts a list of detected ingredients
+
+### AI as a development tool
+
+We used **Claude Code** (powered by **Claude Sonnet 4.6**, `claude-sonnet-4-6`) as a coding assistant during development. Specifically:
+
+- **Integration** — assistance in merging independently developed modules from different group members into a single coherent codebase
+- **Debugging** — identifying and fixing compatibility issues that arose during integration (e.g. session state conflicts, API key loading)
 
 Reference: [HSG Guidelines for Generative AI](https://universitaetstgallen.sharepoint.com/sites/PruefungenDE/SitePages/Arbeiten-mit-KI.aspx)
 
----
-
-## Contribution Matrix
-
-| Task | Sydney | David | Julia | Lea | Raphael |
-|------|--------|-------|-------|-----|---------|
-| Project Management | | | | | |
-| Concept & Problem Definition | | | | | |
-| Fridge Scanner (AI Vision) | | | | | |
-| Recipe API & Scoring | | | | | |
-| Database & User Auth | | | | | |
-| UI / Frontend | | | | | |
-| Battle Mode | | | | | |
-| Testing & Debugging | | | | | |
-| Video & Presentation | | | | | |
-
-**Legend:** 🟩 Main contributor &nbsp;·&nbsp; 🟦 Significant contribution &nbsp;·&nbsp; 🟨 Support &nbsp;·&nbsp; ⬜ No contribution
