@@ -21,7 +21,9 @@ from src.ml import (
     embed_and_save_recipe, get_saved_with_ratings,
     render_rating_widget, rank_recipes,
 )
-# FRIDGE: PHOTO-SCAN UI THAT RETURNS A LIST OF DETECTED INGREDIENT NAMES
+# FRIDGE: render_fridge_scanner() is the entry point for the fridge scan feature —
+# it renders the upload UI (src/fridge_scan.py), calls Claude Vision (src/vision.py),
+# and returns a plain list of ingredient name strings back to app.py
 from src.fridge_scan import render_fridge_scanner
 
 # ─────────────────────────────────────────
@@ -357,7 +359,7 @@ else:
             for key in ["logged_in_user", "preferences", "recipes", "search", "page",
                         "battle_champion", "battle_challenger_idx", "battle_recipes",
                         "battle_done", "battle_selected", "battle_priority", "battle_saved",
-                        "detail_recipe", "scanned_ingredients", "scanned_photo_hash"]:
+                        "detail_recipe", "scanned_ingredients", "scanned_photo_hash"]:  # FRIDGE: scanned_ingredients + scanned_photo_hash are the fridge scan session state keys
                 st.session_state.pop(key, None)
             st.rerun()
 
@@ -408,7 +410,8 @@ else:
                         unsafe_allow_html=True)
             manual_ingredients = st.text_input("Add ingredients", placeholder="e.g. chicken, tofu, lentils, broccoli")
             manual_list = [i.strip().lower() for i in manual_ingredients.split(",") if i.strip()]
-            scanned = render_fridge_scanner()
+            scanned = render_fridge_scanner()  # FRIDGE: calls fridge_scan.py → vision.py → returns list[str] of ingredient names
+            # FRIDGE: merges manually typed ingredients with scanned ones; dict.fromkeys removes duplicates while preserving order
             all_custom = list(dict.fromkeys(manual_list + scanned))
             if all_custom:
                 # Key changes when the pool changes so new items appear pre-selected
